@@ -31,7 +31,7 @@
                 {{ tag }}
               </span>
             </div>
-            <div class="text-sm text-red-600" v-if="isShowTooltipForSameTicker">
+            <div class="text-sm text-red-600" v-if="showTooltipForSameTicker()">
               Такой тикер уже добавлен
             </div>
           </div>
@@ -64,7 +64,7 @@
             class="cursor-pointer overflow-hidden rounded-lg border-solid border-purple-800 bg-white shadow"
             v-for="ticker in tickers"
             :key="ticker.label"
-            @click="sel = ticker"
+            @click="select(ticker)"
             :class="sel === ticker ? 'border-4' : ''"
           >
             <div class="px-4 py-5 text-center sm:p-6">
@@ -181,9 +181,16 @@ export default {
           data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2)
 
         if (this.sel?.label === newTicker.label) this.graph.push(data.USD)
-      }, 3000)
+      }, 5000)
 
       this.tickerInputValue = ''
+    },
+    showTooltipForSameTicker(ticker) {
+      return !!this.tickers.find(el => el.label === ticker)
+    },
+    select(ticker) {
+      this.sel = ticker
+      this.graph = []
     },
     onDelete(idLabel) {
       this.tickers = this.tickers.filter((t) => t.label !== idLabel)
