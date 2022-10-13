@@ -8,7 +8,7 @@
               for="wallet"
               class="block text-sm font-medium text-gray-700"
             ></label>
-            Тикер
+            <h3 class="text-sm font-bold">Тикер</h3>
             <div class="relative mt-1 rounded-md shadow-md">
               <input
                 type="text"
@@ -78,6 +78,7 @@
             <div class="w-full border-t border-gray-200"></div>
             <button
               @click="onDelete(ticker.label)"
+              @click.stop=""
               class="text-md flex w-full items-center justify-center bg-gray-100 px-4 py-4 font-medium text-gray-500 transition-all hover:bg-gray-200 hover:text-gray-600 hover:opacity-20 focus:outline-none sm:px-6"
             >
               <svg
@@ -175,10 +176,13 @@ export default {
         )
 
         const data = await f.json()
-
-        // @ts-ignore
-        this.tickers.find((t) => t.label === newTicker.label).price =
-          data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2)
+        const currentTicker = this.tickers.find(
+          (t) => t.label === newTicker.label
+        )
+        if (currentTicker.price) {
+          currentTicker.price =
+            data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2)
+        }
 
         if (this.sel?.label === newTicker.label) this.graph.push(data.USD)
       }, 5000)
@@ -186,7 +190,7 @@ export default {
       this.tickerInputValue = ''
     },
     showTooltipForSameTicker(ticker) {
-      return !!this.tickers.find(el => el.label === ticker)
+      return !!this.tickers.find((el) => el.label === ticker)
     },
     select(ticker) {
       this.sel = ticker
@@ -194,6 +198,7 @@ export default {
     },
     onDelete(idLabel) {
       this.tickers = this.tickers.filter((t) => t.label !== idLabel)
+      this.sel = null
     },
 
     normalizeGraph() {
@@ -207,5 +212,3 @@ export default {
   },
 }
 </script>
-
-<style src="./app.css"></style>
