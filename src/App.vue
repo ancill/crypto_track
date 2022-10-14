@@ -14,7 +14,8 @@
                 type="text"
                 name="wallet"
                 id="wallet"
-                @keyup.enter="addTicker"
+                ref="wallet"
+                @keyup.enter="addTicker(null)"
                 v-model="tickerInputValue"
                 class="block w-full rounded-md border-gray-300 pr-10 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-gray-500 sm:text-sm"
                 placeholder="Например DOGE"
@@ -25,21 +26,26 @@
             >
               <span
                 class="m-1 inline-flex cursor-pointer items-center rounded-md bg-gray-300 px-2 text-xs font-medium text-gray-800"
-                v-for="tag in ['BTC', 'DOGE', 'BCH', 'ETH']"
+                v-for="tag in tags"
                 @click="addTicker(tag)"
               >
                 {{ tag }}
               </span>
             </div>
-            <div class="text-sm text-red-600" v-if="showTooltipForSameTicker()">
+            <div class="text-sm text-red-600" v-if="isShowTooltipForSameTicker">
               Такой тикер уже добавлен
             </div>
           </div>
         </div>
         <button
           type="button"
-          @click="addTicker"
-          class="my-4 inline-flex items-center rounded-full border border-transparent bg-gray-600 py-2 px-4 text-sm font-medium leading-4 text-white shadow-sm transition-colors duration-300 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+          @click="addTicker(null)"
+          :class="
+            isShowTooltipForSameTicker
+              ? 'cursor-not-allowed bg-gray-300 text-sm '
+              : 'bg-gray-600 hover:bg-gray-700'
+          "
+          class="my-4 inline-flex items-center rounded-full border border-transparent py-2 px-4 text-sm font-medium leading-4 text-white shadow-sm transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
         >
           <!-- Heroicon name: solid/mail -->
           <svg
@@ -148,11 +154,49 @@
 <script>
 // @ts-nocheck
 
+import { onMounted, ref } from 'vue'
+
 const api_key =
   'f4829e03fd35e85421baf7d5b747d5ccaf6ba31428a825af81659e9f02fb8777'
+
+const getCoins = async () => {
+  const f = await fetch(
+    'https://min-api.cryptocompare.com/data/all/coinlist?summary=true'
+  )
+  const data = await f.json()
+  return data.Data
+}
+
 export default {
   name: 'App',
+  watch: {
+    tickerInputValue(val, oldVal) {
+      this.tickerInputValue = val.toUpperCase()
+      const coinsNames = Object.keys(this.coinList)
+      const sameCoins = coinsNames.filter((el) => el.includes(val)).reverse()
 
+      this.isShowTooltipForSameTicker = this.tickers.find(
+        (el) => el.label === val
+      )
+
+      // if no input set tags to popular tags
+      if (!val) {
+        this.tags = ['BTC', 'ETH', 'DODGE', 'TSLE']
+        return
+      }
+      this.tags = sameCoins.slice(0, 4)
+    },
+  },
+  setup() {
+    const coinList = ref({})
+    onMounted(async () => {
+      coinList.value = await getCoins()
+    })
+
+    return {
+      coinList,
+    }
+  },
   data() {
     return {
       tickers: [],
@@ -160,13 +204,31 @@ export default {
       tickerInputValue: '',
       isShowTooltipForSameTicker: false,
       sel: null,
+      tags: ['BTC', 'ETH', 'DODGE', 'TSL'],
     }
   },
   methods: {
+    focusInput() {
+      this.$refs.wallet.focus()
+    },
     addTicker(tickerName = null) {
+      const label = tickerName ? tickerName : this.tickerInputValue
+      const fullTokenInfo = this.coinList[label]
       const newTicker = {
-        label: tickerName ? tickerName : this.tickerInputValue,
+        label,
         price: '-',
+        fullName: fullTokenInfo.FullName,
+        pic: fullTokenInfo.ImageUrl,
+      }
+
+      console.log(newTicker)
+      // set pic
+
+      // set fullName
+
+      if (this.isShowTooltipForSameTicker || !newTicker.label) {
+        this.focusInput()
+        return
       }
       this.tickers.push(newTicker)
 
@@ -179,7 +241,8 @@ export default {
         const currentTicker = this.tickers.find(
           (t) => t.label === newTicker.label
         )
-        if (currentTicker.price) {
+
+        if (data.USD && currentTicker?.price) {
           currentTicker.price =
             data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2)
         }
