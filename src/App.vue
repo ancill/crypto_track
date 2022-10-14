@@ -187,6 +187,16 @@ export default {
       this.tags = sameCoins.slice(0, 4)
     },
   },
+  created() {
+    const tickersLocalData = localStorage.getItem('cryptoList')
+
+    if (tickersLocalData) {
+      this.tickers = JSON.parse(tickersLocalData)
+      this.tickers.forEach((t) => {
+        this.subscribeToUpdates(t)
+      })
+    }
+  },
   setup() {
     const coinList = ref({})
     onMounted(async () => {
@@ -211,27 +221,7 @@ export default {
     focusInput() {
       this.$refs.wallet.focus()
     },
-    addTicker(tickerName = null) {
-      const label = tickerName ? tickerName : this.tickerInputValue
-      const fullTokenInfo = this.coinList[label]
-      const newTicker = {
-        label,
-        price: '-',
-        fullName: fullTokenInfo.FullName,
-        pic: fullTokenInfo.ImageUrl,
-      }
-
-      console.log(newTicker)
-      // set pic
-
-      // set fullName
-
-      if (this.isShowTooltipForSameTicker || !newTicker.label) {
-        this.focusInput()
-        return
-      }
-      this.tickers.push(newTicker)
-
+    subscribeToUpdates(newTicker) {
       setInterval(async () => {
         const f = await fetch(
           `https://min-api.cryptocompare.com/data/price?fsym=${newTicker.label}&tsyms=USD&api_key=${api_key}`
@@ -249,7 +239,27 @@ export default {
 
         if (this.sel?.label === newTicker.label) this.graph.push(data.USD)
       }, 5000)
+    },
+    addTicker(tickerName = null) {
+      const label = tickerName ? tickerName : this.tickerInputValue
+      const fullTokenInfo = this.coinList[label]
+      const newTicker = {
+        label,
+        price: '-',
+        fullName: fullTokenInfo?.FullName,
+        pic: fullTokenInfo?.ImageUrl,
+      }
 
+      if (this.isShowTooltipForSameTicker || !newTicker.label) {
+        this.focusInput()
+        return
+      }
+
+      this.tickers.push(newTicker)
+      this.subscribeToUpdates(newTicker)
+
+      // keep updated list in storage
+      localStorage.setItem('cryptoList', JSON.stringify(this.tickers))
       this.tickerInputValue = ''
     },
     showTooltipForSameTicker(ticker) {
