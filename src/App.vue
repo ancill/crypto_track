@@ -64,6 +64,26 @@
         </button>
       </section>
       <template v-if="tickers.length">
+        <div class="">
+          <hr class="my-4 w-full border-t border-gray-600" />
+          <button
+            class="my-4 mx-2 inline-flex items-center rounded-full border border-transparent bg-gray-600 py-2 px-4 text-sm font-medium leading-4 text-white shadow-sm transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+          >
+            Назад
+          </button>
+          <button
+            class="my-4 mx-2 inline-flex items-center rounded-full border border-transparent bg-gray-600 py-2 px-4 text-sm font-medium leading-4 text-white shadow-sm transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+          >
+            Вперед
+          </button>
+          <div class="my-2 mx-2">
+            Фильтр:
+            <input
+              class="border-b border-gray-600 bg-transparent"
+              v-model="filter"
+            />
+          </div>
+        </div>
         <hr class="my-4 w-full border-t border-gray-600" />
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
           <div
@@ -209,6 +229,8 @@ export default {
   },
   data() {
     return {
+      page: 1,
+      filter: '',
       tickers: [],
       graph: [],
       tickerInputValue: '',
@@ -218,6 +240,12 @@ export default {
     }
   },
   methods: {
+    filteredTickers() {
+      return this.tickers.length > 0 && this.filter
+        ? this.tickers.filter((t) => t.name.includes(this.filter))
+        : []
+    },
+
     focusInput() {
       this.$refs.wallet.focus()
     },
@@ -260,7 +288,9 @@ export default {
 
       // keep updated list in storage
       localStorage.setItem('cryptoList', JSON.stringify(this.tickers))
+
       this.tickerInputValue = ''
+      this.filter = ''
     },
     showTooltipForSameTicker(ticker) {
       return !!this.tickers.find((el) => el.label === ticker)
