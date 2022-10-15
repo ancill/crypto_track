@@ -67,11 +67,15 @@
         <div class="">
           <hr class="my-4 w-full border-t border-gray-600" />
           <button
+            v-if="page > 1"
+            @click="page = page - 1"
             class="my-4 mx-2 inline-flex items-center rounded-full border border-transparent bg-gray-600 py-2 px-4 text-sm font-medium leading-4 text-white shadow-sm transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
           >
             Назад
           </button>
           <button
+            @click="page = page + 1"
+            v-if="hasNextPage"
             class="my-4 mx-2 inline-flex items-center rounded-full border border-transparent bg-gray-600 py-2 px-4 text-sm font-medium leading-4 text-white shadow-sm transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
           >
             Вперед
@@ -88,7 +92,7 @@
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
           <div
             class="cursor-pointer overflow-hidden rounded-lg border-solid border-purple-800 bg-white shadow"
-            v-for="ticker in tickers"
+            v-for="ticker in filteredTickers()"
             :key="ticker.label"
             @click="select(ticker)"
             :class="sel === ticker ? 'border-4' : ''"
@@ -190,6 +194,23 @@ const getCoins = async () => {
 export default {
   name: 'App',
   watch: {
+    filter(val) {
+      this.filter = val.toUpperCase()
+
+      window.history.pushState(
+        null,
+        document.title,
+        `${window.location.pathname}?filter=${this.filter}&page=${this.page}`
+      )
+      this.page = 1
+    },
+    page(val) {
+      window.history.pushState(
+        null,
+        document.title,
+        `${window.location.pathname}?filter=${this.filter}&page=${this.page}`
+      )
+    },
     tickerInputValue(val, oldVal) {
       this.tickerInputValue = val.toUpperCase()
       const coinsNames = Object.keys(this.coinList)
@@ -208,6 +229,18 @@ export default {
     },
   },
   created() {
+    const windowData = Object.fromEntries(
+      new URL(window.location).searchParams.entries()
+    )
+
+    if (windowData.filter) {
+      this.filter = windowData.filter
+    }
+
+    if (windowData.page) {
+      this.page = windowData.page
+    }
+
     const tickersLocalData = localStorage.getItem('cryptoList')
 
     if (tickersLocalData) {
@@ -237,13 +270,25 @@ export default {
       isShowTooltipForSameTicker: false,
       sel: null,
       tags: ['BTC', 'ETH', 'DODGE', 'TSL'],
+      hasNextPage: true,
     }
   },
   methods: {
     filteredTickers() {
-      return this.tickers.length > 0 && this.filter
-        ? this.tickers.filter((t) => t.name.includes(this.filter))
-        : []
+      // 1 --- 0, 5
+      // 2 --- 6, 11
+      // (6 * (page - 1), 6 * page - 1)
+
+      const start = (this.page - 1) * 6
+      const end = this.page * 6
+
+      const filteredTickers = this.tickers.filter((t) =>
+        t.label.includes(this.filter)
+      )
+
+      this.hasNextPage = filteredTickers.length > end
+
+      return filteredTickers.slice(start, end)
     },
 
     focusInput() {
