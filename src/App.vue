@@ -214,18 +214,23 @@ export default {
     tickerInputValue(val, oldVal) {
       this.tickerInputValue = val.toUpperCase()
       const coinsNames = Object.keys(this.coinList)
-      const sameCoins = coinsNames.filter((el) => el.includes(val)).reverse()
+      const filteredSimilarCoins = coinsNames
+        .filter((el) => el.includes(val))
+        .reverse()
 
       this.isShowTooltipForSameTicker = this.tickers.find(
         (el) => el.label === val
       )
 
+      // check for suggestions tags
+      const l = filteredSimilarCoins.find((el) => this.tickers.includes(el))
+      
       // if no input set tags to popular tags
       if (!val) {
         this.tags = ['BTC', 'ETH', 'DODGE', 'TSLE']
         return
       }
-      this.tags = sameCoins.slice(0, 4)
+      this.tags = filteredSimilarCoins.slice(0, 4)
     },
   },
   created() {
