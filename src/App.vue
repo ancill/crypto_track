@@ -278,13 +278,6 @@ export default {
       }
     },
     filter() {
-      this.filter = this.filter.toUpperCase()
-
-      window.history.pushState(
-        null,
-        document.title,
-        `${window.location.pathname}?filter=${this.filter}&page=${this.page}`
-      )
       this.page = 1
     },
     pageStateOptions(value) {
