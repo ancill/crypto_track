@@ -95,7 +95,7 @@
             v-for="ticker in paginatedTickers"
             :key="ticker.label"
             class="cursor-pointer overflow-hidden rounded-lg border-solid border-purple-800 bg-white shadow"
-            :class="sel === ticker ? 'border-4' : ''"
+            :class="selectedTicker === ticker ? 'border-4' : ''"
             @click="select(ticker)"
           >
             <div class="px-4 py-5 text-center sm:p-6">
@@ -132,13 +132,13 @@
         <hr class="my-4 w-full border-t border-gray-600" />
       </template>
 
-      <section v-if="sel" class="relative">
+      <section v-if="selectedTicker" class="relative">
         <h3 class="my-8 text-lg font-medium leading-6 text-gray-900">
-          {{ sel.label }} - USD
+          {{ selectedTicker.label }} - USD
         </h3>
         <div class="flex h-64 items-end border-b border-l border-gray-600">
           <div
-            v-for="(bar, idx) in normalizedGraph()"
+            v-for="(bar, idx) in normalizedGraph"
             :key="idx"
             :style="{ height: `${bar}%` }"
             class="h-24 w-10 border bg-purple-800"
@@ -147,7 +147,7 @@
         <button
           type="button"
           class="absolute top-0 right-0"
-          @click="sel = null"
+          @click="selectedTicker = null"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -224,7 +224,7 @@ export default {
       graph: [],
       tickerInputValue: "",
       isShowTooltipForSameTicker: false,
-      sel: null,
+      selectedTicker: null,
       tags: ["BTC", "ETH", "DODGE", "TSL"],
     }
   },
@@ -259,16 +259,26 @@ export default {
         (price) => 5 + ((price - minValue) * 95) / (maxValue - minValue)
       )
     },
+    // избавляемся от дублирования
+    pageStateOptions() {
+      return {
+        filter: this.filter,
+        page: this.page,
+      }
+    },
   },
   watch: {
-    //
+    selectedTicker() {
+      this.graph = []
+    },
+    // убрали логику из действия (метода) на наблюдателя если это то
     paginatedTickers() {
       if (this.paginatedTickers.length === 0 && this.page > 1) {
         this.page -= 1
       }
     },
-    filter(val) {
-      this.filter = val.toUpperCase()
+    filter() {
+      this.filter = this.filter.toUpperCase()
 
       window.history.pushState(
         null,
@@ -277,33 +287,42 @@ export default {
       )
       this.page = 1
     },
-    page(val) {
+    pageStateOptions(value) {
       window.history.pushState(
         null,
         document.title,
-        `${window.location.pathname}?filter=${this.filter}&page=${this.page}`
+        `${window.location.pathname}?filter=${value.filter}&page=${value.page}`
       )
     },
-    tickerInputValue(val, oldVal) {
-      this.tickerInputValue = val.toUpperCase()
+    tickerInputValue() {
+      this.tickerInputValue = this.tickerInputValue.toUpperCase()
       const coinsNames = Object.keys(this.coinList)
       const filteredSimilarCoins = coinsNames
-        .filter((el) => el.includes(val))
+        .filter((el) => el.includes(this.tickerInputValue))
         .reverse()
 
       this.isShowTooltipForSameTicker = this.tickers.find(
-        (el) => el.label === val
+        (el) => el.label === this.tickerInputValue
       )
 
       // check for suggestions tags
       const l = filteredSimilarCoins.find((el) => this.tickers.includes(el))
 
       // if no input set tags to popular tags
-      if (!val) {
+      if (!this.tickerInputValue) {
         this.tags = ["BTC", "ETH", "DODGE", "TSLE"]
         return
       }
       this.tags = filteredSimilarCoins.slice(0, 4)
+    },
+
+    tickers() {
+      // keep updated list in storage
+      // при watch значение меняются не зависимо от того как были спровацированны действия на изменение
+      localStorage.setItem("cryptoList", JSON.stringify(this.tickers))
+
+      this.tickerInputValue = ""
+      this.filter = ""
     },
   },
   created() {
@@ -348,7 +367,8 @@ export default {
             data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2)
         }
 
-        if (this.sel?.label === newTicker.label) this.graph.push(data.USD)
+        if (this.selectedTicker?.label === newTicker.label)
+          this.graph.push(data.USD)
       }, 5000)
     },
     addTicker(tickerName = null) {
@@ -366,25 +386,20 @@ export default {
         return
       }
 
-      this.tickers.push(newTicker)
+      this.tickers = [...this.tickers, newTicker]
       this.subscribeToUpdates(newTicker)
-
-      // keep updated list in storage
-      localStorage.setItem("cryptoList", JSON.stringify(this.tickers))
-
-      this.tickerInputValue = ""
-      this.filter = ""
     },
     showTooltipForSameTicker(ticker) {
       return !!this.tickers.find((el) => el.label === ticker)
     },
     select(ticker) {
-      this.sel = ticker
-      this.graph = []
+      this.selectedTicker = ticker
     },
-    onDelete(idLabel) {
-      this.tickers = this.tickers.filter((t) => t.label !== idLabel)
-      this.sel = null
+    onDelete(tickerToRemove) {
+      this.tickers = this.tickers.filter((t) => t.label !== tickerToRemove)
+      if (this.selectedTicker?.label === tickerToRemove) {
+        this.selectedTicker = null
+      }
     },
   },
 }
