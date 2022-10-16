@@ -92,7 +92,7 @@
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
           <div
             class="cursor-pointer overflow-hidden rounded-lg border-solid border-purple-800 bg-white shadow"
-            v-for="ticker in filteredTickers()"
+            v-for="ticker in filteredTickers"
             :key="ticker.label"
             @click="select(ticker)"
             :class="sel === ticker ? 'border-4' : ''"
@@ -178,6 +178,18 @@
 <script>
 // @ts-nocheck
 
+// todo:
+// [ ] 1. Watch try refactor - 3
+// [ ] 2. Still fetching data after ticket delete - 5
+// [ ] 3. Too much fetch calls - 4
+// [ ] 4. Calls inside component - 5
+// [ ] 5. Api error checking - 5
+// [ ] 6. State has connected data - 5+
+// [ ] 7. Graph looks weird when gets more then 100 prices updates - 4
+// [ ] 8. When we delete ticket localStorage not updated - 5
+// [ ] 9. localStorage inside private tabs -2
+// [ ] 10. magic number ( url, milseconds, localStorage key, pageNumber, api key) - 1
+
 import { onMounted, ref } from 'vue'
 
 const api_key =
@@ -224,13 +236,31 @@ export default {
 
       // check for suggestions tags
       const l = filteredSimilarCoins.find((el) => this.tickers.includes(el))
-      
+
       // if no input set tags to popular tags
       if (!val) {
         this.tags = ['BTC', 'ETH', 'DODGE', 'TSLE']
         return
       }
       this.tags = filteredSimilarCoins.slice(0, 4)
+    },
+  },
+  computed: {
+    filteredTickers() {
+      // 1 --- 0, 5
+      // 2 --- 6, 11
+      // (6 * (page - 1), 6 * page - 1)
+
+      const start = (this.page - 1) * 6
+      const end = this.page * 6
+
+      const filteredTickers = this.tickers.filter((t) =>
+        t.label.includes(this.filter)
+      )
+
+      this.hasNextPage = filteredTickers.length > end
+
+      return filteredTickers.slice(start, end)
     },
   },
   created() {
@@ -279,23 +309,6 @@ export default {
     }
   },
   methods: {
-    filteredTickers() {
-      // 1 --- 0, 5
-      // 2 --- 6, 11
-      // (6 * (page - 1), 6 * page - 1)
-
-      const start = (this.page - 1) * 6
-      const end = this.page * 6
-
-      const filteredTickers = this.tickers.filter((t) =>
-        t.label.includes(this.filter)
-      )
-
-      this.hasNextPage = filteredTickers.length > end
-
-      return filteredTickers.slice(start, end)
-    },
-
     focusInput() {
       this.$refs.wallet.focus()
     },
