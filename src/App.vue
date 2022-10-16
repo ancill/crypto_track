@@ -18,7 +18,7 @@
                 name="wallet"
                 class="block w-full rounded-md border-gray-300 pr-10 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-gray-500 sm:text-sm"
                 placeholder="Например DOGE"
-                @keyup.enter="addTicker(null)"
+                @keyup.enter="addTicker"
               />
             </div>
             <div
@@ -28,7 +28,7 @@
                 v-for="tag in tags"
                 :key="tag"
                 class="m-1 inline-flex cursor-pointer items-center rounded-md bg-gray-300 px-2 text-xs font-medium text-gray-800"
-                @click="addTicker(tag)"
+                @click="tickerInputValue = tag"
               >
                 {{ tag }}
               </span>
@@ -183,13 +183,13 @@
 // [ ] 3. Too much fetch calls - 4
 // [ ] 4. Calls inside component - 5
 // [ ] 5. Api error checking - 5
-// [ ] 6. State has connected data - 5+
+// [X] 6. State has connected data - 5+
 // [ ] 7. Graph looks weird when gets more then 100 prices updates - 4
-// [ ] 8. When we delete ticket localStorage not updated - 5
+// [X] 8. When we delete ticket localStorage not updated - 5
 // [ ] 9. localStorage inside private tabs -2
 // [ ] 10. magic number ( url, milseconds, localStorage key, pageNumber, api key) - 1
 // [x] 11. graph broken with same values
-// [ ] 12. removed tickers has graph to show
+// [X] 12. removed tickers has graph to show
 
 import { onMounted, ref } from "vue"
 
@@ -364,8 +364,9 @@ export default {
           this.graph.push(data.USD)
       }, 5000)
     },
-    addTicker(tickerName = null) {
-      const label = tickerName ? tickerName : this.tickerInputValue
+    addTicker() {
+      console.log(this.tag, this.tickerInputValue)
+      const label = this.tag ? this.tag : this.tickerInputValue
       const fullTokenInfo = this.coinList[label]
       const newTicker = {
         label,
