@@ -3,7 +3,7 @@ const API_KEY =
 
 //refactor to  URLsearchParams
 export const loadTicker = (tickerName) => {
-  fetch(
+  return fetch(
     `https://min-api.cryptocompare.com/data/price?fsym=${tickerName}&tsyms=USD&api_key=${API_KEY}`
   ).then((r) => r.json())
 }

@@ -190,7 +190,7 @@
 // [ ] 10. magic number ( url, milseconds, localStorage key, pageNumber, api key) - 1
 // [x] 11. graph broken with same values
 // [X] 12. removed tickers has graph to show
-
+import { loadTicker } from "./api"
 import { onMounted, ref } from "vue"
 
 const api_key =
@@ -346,22 +346,22 @@ export default {
     },
     subscribeToUpdates(newTicker) {
       setInterval(async () => {
-        const f = await fetch(
-          `https://min-api.cryptocompare.com/data/price?fsym=${newTicker.label}&tsyms=USD&api_key=${api_key}`
-        )
+        const exchangeTickerInfo = await loadTicker(newTicker)
 
-        const data = await f.json()
+        console.log(newTicker)
         const currentTicker = this.tickers.find(
           (t) => t.label === newTicker.label
         )
 
-        if (data.USD && currentTicker?.price) {
+        if (exchangeTickerInfo.USD && currentTicker?.price) {
           currentTicker.price =
-            data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2)
+            exchangeTickerInfo.USD > 1
+              ? exchangeTickerInfo.USD.toFixed(2)
+              : exchangeTickerInfo.USD.toPrecision(2)
         }
 
         if (this.selectedTicker?.label === newTicker.label)
-          this.graph.push(data.USD)
+          this.graph.push(exchangeTickerInfo.USD)
       }, 5000)
     },
     addTicker() {
