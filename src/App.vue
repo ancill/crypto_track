@@ -103,7 +103,11 @@
                 {{ ticker.label }} - USD
               </dt>
               <dd class="mt-1 text-3xl font-semibold text-gray-900">
-                {{ ticker.price }}
+                {{
+                  ticker.price === "-"
+                    ? ticker.price
+                    : formatPrice(ticker.price)
+                }}
               </dd>
             </div>
             <div class="w-full border-t border-gray-200" />
@@ -190,7 +194,7 @@
 // [ ] 10. magic number ( url, milseconds, localStorage key, pageNumber, api key) - 1
 // [x] 11. graph broken with same values
 // [X] 12. removed tickers has graph to show
-import { loadTicker } from "./api"
+import { loadTickers } from "./api"
 import { onMounted, ref } from "vue"
 
 const api_key =
@@ -335,37 +339,42 @@ export default {
 
     if (tickersLocalData) {
       this.tickers = JSON.parse(tickersLocalData)
-      this.tickers.forEach((t) => {
-        this.subscribeToUpdates(t)
-      })
     }
+
+    // vue has auto bind in interval
+    setInterval(this.updateTickers, 5000)
   },
   methods: {
-    focusInput() {
-      this.$refs.wallet.focus()
+    formatPrice(price) {
+      return price > 1 ? price.toFixed(2) : price.toPrecision(2)
     },
-    subscribeToUpdates(newTicker) {
-      setInterval(async () => {
-        const exchangeTickerInfo = await loadTicker(newTicker)
+    async updateTickers() {
+      if (!this.tickers.length) {
+        return
+      }
+      const exchangeTickerInfo = await loadTickers(
+        this.tickers.map((t) => t.label)
+      )
 
-        console.log(newTicker)
-        const currentTicker = this.tickers.find(
-          (t) => t.label === newTicker.label
-        )
+      // update existing tickers
+      this.tickers.forEach((ticker) => {
+        const price = exchangeTickerInfo[ticker.label.toUpperCase()]
+        ticker.price = price ?? "-"
+      })
 
-        if (exchangeTickerInfo.USD && currentTicker?.price) {
-          currentTicker.price =
-            exchangeTickerInfo.USD > 1
-              ? exchangeTickerInfo.USD.toFixed(2)
-              : exchangeTickerInfo.USD.toPrecision(2)
-        }
+      //  const currentTicker = this.tickers.find((t) => t.label === tickerLabel)
 
-        if (this.selectedTicker?.label === newTicker.label)
-          this.graph.push(exchangeTickerInfo.USD)
-      }, 5000)
+      // if (exchangeTickerInfo.USD && currentTicker?.price) {
+      //   currentTicker.price =
+      //     exchangeTickerInfo.USD > 1
+      //       ? exchangeTickerInfo.USD.toFixed(2)
+      //       : exchangeTickerInfo.USD.toPrecision(2)
+      // }
+
+      // if (this.selectedTicker?.label === tickerLabel)
+      //   this.graph.push(exchangeTickerInfo.USD)
     },
     addTicker() {
-      console.log(this.tag, this.tickerInputValue)
       const label = this.tag ? this.tag : this.tickerInputValue
       const fullTokenInfo = this.coinList[label]
       const newTicker = {
@@ -381,13 +390,15 @@ export default {
       }
 
       this.tickers = [...this.tickers, newTicker]
-      this.subscribeToUpdates(newTicker)
     },
     showTooltipForSameTicker(ticker) {
       return !!this.tickers.find((el) => el.label === ticker)
     },
     select(ticker) {
       this.selectedTicker = ticker
+    },
+    focusInput() {
+      this.$refs.wallet.focus()
     },
     onDelete(tickerToRemove) {
       this.tickers = this.tickers.filter((t) => t.label !== tickerToRemove)
