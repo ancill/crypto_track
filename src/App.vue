@@ -20,7 +20,7 @@
                 name="wallet"
                 class="block w-full rounded-md border-gray-300 pr-10 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-gray-500 sm:text-sm"
                 placeholder="Например DOGE"
-                @keyup.enter="addTicker"
+                @keyup.enter="!isShowTooltipForSameTicker ? addTicker() : null"
               />
             </div>
             <div
@@ -48,7 +48,7 @@
               : 'bg-gray-600 hover:bg-gray-700'
           "
           class="my-4 inline-flex items-center rounded-full border border-transparent py-2 px-4 text-sm font-medium leading-4 text-white shadow-sm transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-          @click="addTicker(null)"
+          @click="!isShowTooltipForSameTicker ? addTicker() : null"
         >
           <!-- Heroicon name: solid/mail -->
           <svg
@@ -105,11 +105,7 @@
                 {{ ticker.label }} - USD
               </dt>
               <dd class="mt-1 text-3xl font-semibold text-gray-900">
-                {{
-                  ticker.price === "-"
-                    ? ticker.price
-                    : formatPrice(ticker.price)
-                }}
+                {{ formatPrice(ticker.price) }}
               </dd>
             </div>
             <div class="w-full border-t border-gray-200" />
@@ -196,26 +192,23 @@
 // [ ] 10. magic number ( url, milseconds, localStorage key, pageNumber, api key) - 1
 // [x] 11. graph broken with same values
 // [X] 12. removed tickers has graph to show
-import { loadTickers } from "./api"
+import {
+  loadTickers,
+  subscribeToTicker,
+  getCoinsListFullInfo,
+  unsubscribeFromTickers,
+} from "./api"
 import { onMounted, ref } from "vue"
 
 const api_key =
   "f4829e03fd35e85421baf7d5b747d5ccaf6ba31428a825af81659e9f02fb8777"
 
-const getCoins = async () => {
-  const f = await fetch(
-    "https://min-api.cryptocompare.com/data/all/coinlist?summary=true"
-  )
-  const data = await f.json()
-  return data.Data
-}
-
 export default {
   name: "App",
   setup() {
     const coinList = ref({})
-    onMounted(async () => {
-      coinList.value = await getCoins()
+    onMounted(() => {
+      coinList.value = getCoinsListFullInfo()
     })
 
     return {
@@ -238,21 +231,26 @@ export default {
     startIndex() {
       return (this.page - 1) * 6
     },
+
     endIndex() {
       return this.page * 6
     },
+
     hasNextPage() {
       return this.filteredTickers.length > this.endIndex
     },
+
     filteredTickers() {
       // 1 --- 0, 5
       // 2 --- 6, 11
       // (6 * (page - 1), 6 * page - 1)
       return this.tickers.filter((t) => t.label.includes(this.filter))
     },
+
     paginatedTickers() {
       return this.filteredTickers.slice(this.startIndex, this.endIndex)
     },
+
     normalizedGraph() {
       const maxValue = Math.max(...this.graph)
       const minValue = Math.min(...this.graph)
@@ -265,6 +263,7 @@ export default {
         (price) => 5 + ((price - minValue) * 95) / (maxValue - minValue)
       )
     },
+
     // избавляемся от дублирования
     pageStateOptions() {
       return {
@@ -277,15 +276,18 @@ export default {
     selectedTicker() {
       this.graph = []
     },
+
     // убрали логику из действия (метода) на наблюдателя если это то
     paginatedTickers() {
       if (this.paginatedTickers.length === 0 && this.page > 1) {
         this.page -= 1
       }
     },
+
     filter() {
       this.page = 1
     },
+
     pageStateOptions(value) {
       window.history.pushState(
         null,
@@ -293,6 +295,7 @@ export default {
         `${window.location.pathname}?filter=${value.filter}&page=${value.page}`
       )
     },
+
     tickerInputValue() {
       this.tickerInputValue = this.tickerInputValue.toUpperCase()
       const coinsNames = Object.keys(this.coinList)
@@ -341,72 +344,63 @@ export default {
 
     if (tickersLocalData) {
       this.tickers = JSON.parse(tickersLocalData)
+      this.tickers.forEach((ticker) => {
+        subscribeToTicker(ticker.label, (newPrice) => {
+          this.updateTicker(ticker.label, newPrice)
+        })
+      })
     }
 
     // vue has auto bind in interval
-    setInterval(this.updateTickers, 5000)
+    // setInterval(this.updateTickers, 5000)
   },
   methods: {
+    updateTicker(tickerName, price) {
+      this.tickers
+        .filter((t) => t.label === tickerName)
+        .forEach((t) => {
+          t.price = price
+        })
+    },
+
     formatPrice(price) {
+      if (price === "-") {
+        return price
+      }
       return price > 1 ? price.toFixed(2) : price.toPrecision(2)
     },
-    async updateTickers() {
-      if (!this.tickers.length) {
-        return
-      }
-      const exchangeTickerInfo = await loadTickers(
-        this.tickers.map((t) => t.label)
-      )
 
-      // update existing tickers
-      this.tickers.forEach((ticker) => {
-        const price = exchangeTickerInfo[ticker.label.toUpperCase()]
-        ticker.price = price ?? "-"
-      })
-
-      //  const currentTicker = this.tickers.find((t) => t.label === tickerLabel)
-
-      // if (exchangeTickerInfo.USD && currentTicker?.price) {
-      //   currentTicker.price =
-      //     exchangeTickerInfo.USD > 1
-      //       ? exchangeTickerInfo.USD.toFixed(2)
-      //       : exchangeTickerInfo.USD.toPrecision(2)
-      // }
-
-      // if (this.selectedTicker?.label === tickerLabel)
-      //   this.graph.push(exchangeTickerInfo.USD)
-    },
     addTicker() {
-      const label = this.tag ? this.tag : this.tickerInputValue
-      const fullTokenInfo = this.coinList[label]
       const newTicker = {
-        label,
+        label: this.tag ? this.tag : this.tickerInputValue,
         price: "-",
-        fullName: fullTokenInfo?.FullName,
-        pic: fullTokenInfo?.ImageUrl,
-      }
-
-      if (this.isShowTooltipForSameTicker || !newTicker.label) {
-        this.focusInput()
-        return
       }
 
       this.tickers = [...this.tickers, newTicker]
+      subscribeToTicker(newTicker.label, (newPrice) =>
+        this.updateTicker(newTicker.label, newPrice)
+      )
     },
+
     showTooltipForSameTicker(ticker) {
       return !!this.tickers.find((el) => el.label === ticker)
     },
+
     select(ticker) {
       this.selectedTicker = ticker
     },
+
     focusInput() {
       this.$refs.wallet.focus()
     },
+
     onDelete(tickerToRemove) {
       this.tickers = this.tickers.filter((t) => t.label !== tickerToRemove)
       if (this.selectedTicker?.label === tickerToRemove) {
         this.selectedTicker = null
       }
+
+      unsubscribeFromTickers(tickerToRemove)
     },
   },
 }
