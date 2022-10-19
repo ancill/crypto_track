@@ -1,5 +1,7 @@
 <template>
-  <div class="container mx-auto flex flex-col items-center bg-gray-100 p-4">
+  <div
+    class="dark:bg-slate-800 container mx-auto flex flex-col items-center bg-gray-100 p-4"
+  >
     <div class="container">
       <section>
         <div class="flex">
@@ -8,7 +10,7 @@
               for="wallet"
               class="block text-sm font-medium text-gray-700"
             />
-            <h3 class="text-sm font-bold">Тикер</h3>
+            <h3 class="text-sm font-bold dark:text-white">Тикер</h3>
             <div class="relative mt-1 rounded-md shadow-md">
               <input
                 id="wallet"
@@ -81,7 +83,7 @@
           >
             Вперед
           </button>
-          <div class="my-2 mx-2">
+          <div class="my-2 mx-2 dark:text-white">
             Фильтр:
             <input
               v-model="filter"

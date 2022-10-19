@@ -11,7 +11,7 @@ export const loadTickers = (tickers) => {
     .then((r) => r.json())
     .then((rawData) =>
       Object.fromEntries(
-        Object.entries(rawData.map(([key, value]) => [key, 1 / value]))
+        Object.entries(rawData).map(([key, value]) => [key, 1 / value])
       )
     )
 }
