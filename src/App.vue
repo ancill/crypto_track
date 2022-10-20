@@ -207,8 +207,8 @@ export default {
   name: "App",
   setup() {
     const coinList = ref({})
-    onMounted(() => {
-      coinList.value = getCoinsListFullInfo()
+    onMounted(async () => {
+      coinList.value = await getCoinsListFullInfo()
     })
 
     return {
@@ -308,7 +308,7 @@ export default {
       )
 
       // check for suggestions tags
-      const l = filteredSimilarCoins.find((el) => this.tickers.includes(el))
+      // const l = filteredSimilarCoins.find((el) => this.tickers.includes(el))
 
       // if no input set tags to popular tags
       if (!this.tickerInputValue) {
