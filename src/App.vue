@@ -180,8 +180,8 @@
 
 <script>
 // todo:
-// [ ] 1. Watch try refactor - 3
-// [ ] 2. Still fetching data after ticket delete - 5
+// [X] 1. Watch try refactor - 3
+// [X] 2. Still fetching data after ticket delete - 5
 // [ ] 3. Too much fetch calls - 4
 // [ ] 4. Calls inside component - 5
 // [ ] 5. Api error checking - 5
@@ -193,28 +193,13 @@
 // [x] 11. graph broken with same values
 // [X] 12. removed tickers has graph to show
 import {
-  loadTickers,
   subscribeToTicker,
   getCoinsListFullInfo,
   unsubscribeFromTickers,
 } from "./api"
-import { onMounted, ref } from "vue"
-
-const api_key =
-  "f4829e03fd35e85421baf7d5b747d5ccaf6ba31428a825af81659e9f02fb8777"
 
 export default {
   name: "App",
-  setup() {
-    const coinList = ref({})
-    onMounted(async () => {
-      coinList.value = await getCoinsListFullInfo()
-    })
-
-    return {
-      coinList,
-    }
-  },
   data() {
     return {
       page: 1,
@@ -225,6 +210,7 @@ export default {
       isShowTooltipForSameTicker: false,
       selectedTicker: null,
       tags: ["BTC", "ETH", "DODGE", "TSL"],
+      coinList: [],
     }
   },
   computed: {
@@ -326,6 +312,10 @@ export default {
       this.tickerInputValue = ""
       this.filter = ""
     },
+  },
+
+  async mounted() {
+    this.coinList = await getCoinsListFullInfo()
   },
   created() {
     const windowData = Object.fromEntries(
