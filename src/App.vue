@@ -182,8 +182,8 @@
 // todo:
 // [X] 1. Watch try refactor - 3
 // [X] 2. Still fetching data after ticket delete - 5
-// [ ] 3. Too much fetch calls - 4
-// [ ] 4. Calls inside component - 5
+// [X] 3. Too much fetch calls - 4
+// [X] 4. Calls inside component - 5
 // [ ] 5. Api error checking - 5
 // [X] 6. State has connected data - 5+
 // [ ] 7. Graph looks weird when gets more then 100 prices updates - 4
@@ -227,12 +227,14 @@ export default {
     },
 
     filteredTickers() {
-      // 1 --- 0, 5
-      // 2 --- 6, 11
-      // (6 * (page - 1), 6 * page - 1)
       return this.tickers.filter((t) => t.label.includes(this.filter))
     },
 
+    /** Pagination logic
+     * 2 --- 6, 11
+     * 1 --- 0, 5
+     * (6 * (page - 1), 6 * page - 1)
+     */
     paginatedTickers() {
       return this.filteredTickers.slice(this.startIndex, this.endIndex)
     },
@@ -340,9 +342,6 @@ export default {
         })
       })
     }
-
-    // vue has auto bind in interval
-    // setInterval(this.updateTickers, 5000)
   },
   methods: {
     updateTicker(tickerName, price) {
