@@ -2,6 +2,24 @@ const API_KEY =
   "f4829e03fd35e85421baf7d5b747d5ccaf6ba31428a825af81659e9f02fb8777"
 
 const tickersHandlers = new Map()
+const socket = new WebSocket(
+  `wss://streamer.cryptocompare.com/v2?api_key=${API_KEY}`
+)
+
+const AGGREGATE_INDEX = "5"
+
+socket.addEventListener("message", (e) => {
+  const {
+    TYPE: type,
+    FROMSYMBOL: currency,
+    PRICE: newPrice,
+  } = JSON.parse(e.data)
+  if (type !== AGGREGATE_INDEX) {
+    return
+  }
+  const handlers = tickersHandlers.get(currency) ?? []
+  handlers.forEach((fn) => fn(newPrice))
+})
 
 export const getCoinsListFullInfo = () => {
   return fetch(
@@ -11,7 +29,7 @@ export const getCoinsListFullInfo = () => {
     .then((data) => data.Data)
 }
 
-//refactor to  URLsearchParams
+// OLD method to loadTickers / refactor to  URLsearchParams
 export const loadTickers = () => {
   if (tickersHandlers.size === 0) {
     return
@@ -35,23 +53,47 @@ export const loadTickers = () => {
 }
 // {a: 1, b: 2} => [['a', 1], ['b', 2]] => [['a', 1], ['b', 0.5]] => {a: 1, b: 0.5}
 
+function sendToWebSocket(message) {
+  const stringifyMessage = JSON.stringify(message)
+
+  if (socket.readyState === WebSocket.OPEN) {
+    socket.send(stringifyMessage)
+    return
+  }
+
+  socket.addEventListener(
+    "open",
+    () => {
+      socket.send(stringifyMessage)
+    },
+    { once: true }
+  )
+}
+
+function subscribeToTickerOnWs(ticker) {
+  sendToWebSocket({
+    action: "SubAdd",
+    subs: [`5~CCCAGG~${ticker}~USD`],
+  })
+}
+
+function unsubscribeToTickerOnWs(ticker) {
+  sendToWebSocket({
+    action: "SubRemove",
+    subs: [`5~CCCAGG~${ticker}~USD`],
+  })
+}
+
 // subscribers is functions that we store in tickersHandlers
 export const subscribeToTicker = (ticker, cb) => {
   const subscribers = tickersHandlers.get(ticker) || [] // get all func from ticker
   tickersHandlers.set(ticker, [...subscribers, cb]) // set all old funcs and new one
+  subscribeToTickerOnWs(ticker)
 }
 
 export const unsubscribeFromTickers = (ticker) => {
-  // const subscribers = tickersHandlers.get(ticker) || []
-  // tickersHandlers.set(
-  //   ticker,
-  //   subscribers.filter((fn) => fn !== cb)
-  // )
-
-  const isDeleted = tickersHandlers.delete(ticker)
-  console.log(isDeleted, ticker)
+  tickersHandlers.delete(ticker)
+  unsubscribeToTickerOnWs(ticker)
 }
-
-setInterval(loadTickers, 5000)
 
 window.tickers = tickersHandlers
