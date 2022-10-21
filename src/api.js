@@ -2,6 +2,7 @@ const API_KEY =
   "f4829e03fd35e85421baf7d5b747d5ccaf6ba31428a825af81659e9f02fb8777"
 
 const tickersHandlers = new Map()
+
 const socket = new WebSocket(
   `wss://streamer.cryptocompare.com/v2?api_key=${API_KEY}`
 )
@@ -12,8 +13,15 @@ socket.addEventListener("message", (e) => {
   const {
     TYPE: type,
     FROMSYMBOL: currency,
+    TOSYMBOL: secondCurrency,
     PRICE: newPrice,
+    MESSAGE: message,
   } = JSON.parse(e.data)
+
+  if (message === "INVALID_SUB") {
+    unsubscribeFromTicker(currency)
+    return
+  }
   if (type !== AGGREGATE_INDEX || newPrice === undefined) {
     return
   }
@@ -28,30 +36,6 @@ export const getCoinsListFullInfo = () => {
     .then((r) => r.json())
     .then((data) => data.Data)
 }
-
-// OLD method to loadTickers / refactor to  URLsearchParams
-export const loadTickers = () => {
-  if (tickersHandlers.size === 0) {
-    return
-  }
-
-  return fetch(
-    `https://min-api.cryptocompare.com/data/pricemulti?fsyms=${[
-      ...tickersHandlers.keys(),
-    ].join(",")}&tsyms=USD&api_key=${API_KEY}`
-  )
-    .then((r) => r.json())
-    .then((rawData) => {
-      const updatedPrices = Object.fromEntries(
-        Object.entries(rawData).map(([key, value]) => [key, value.USD])
-      )
-      Object.entries(updatedPrices).forEach(([currency, newPrice]) => {
-        const handlers = tickersHandlers.get(currency) ?? []
-        handlers.forEach((fn) => fn(newPrice))
-      })
-    })
-}
-// {a: 1, b: 2} => [['a', 1], ['b', 2]] => [['a', 1], ['b', 0.5]] => {a: 1, b: 0.5}
 
 function sendToWebSocket(message) {
   const stringifyMessage = JSON.stringify(message)
@@ -91,9 +75,33 @@ export const subscribeToTicker = (ticker, cb) => {
   subscribeToTickerOnWs(ticker)
 }
 
-export const unsubscribeFromTickers = (ticker) => {
+export const unsubscribeFromTicker = (ticker) => {
   tickersHandlers.delete(ticker)
   unsubscribeToTickerOnWs(ticker)
 }
 
 window.tickers = tickersHandlers
+
+// OLD method to loadTickers / refactor to  URLsearchParams
+// export const loadTickers = () => {
+//   if (tickersHandlers.size === 0) {
+//     return
+//   }
+
+//   return fetch(
+//     `https://min-api.cryptocompare.com/data/pricemulti?fsyms=${[
+//       ...tickersHandlers.keys(),
+//     ].join(",")}&tsyms=USD&api_key=${API_KEY}`
+//   )
+//     .then((r) => r.json())
+//     .then((rawData) => {
+//       const updatedPrices = Object.fromEntries(
+//         Object.entries(rawData).map(([key, value]) => [key, value.USD])
+//       )
+//       Object.entries(updatedPrices).forEach(([currency, newPrice]) => {
+//         const handlers = tickersHandlers.get(currency) ?? []
+//         handlers.forEach((fn) => fn(newPrice))
+//       })
+//     })
+// }
+// {a: 1, b: 2} => [['a', 1], ['b', 2]] => [['a', 1], ['b', 0.5]] => {a: 1, b: 0.5}

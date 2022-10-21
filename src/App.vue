@@ -100,7 +100,10 @@
             :class="selectedTicker === ticker ? 'border-4' : ''"
             @click="select(ticker)"
           >
-            <div class="px-4 py-5 text-center sm:p-6">
+            <div
+              class="px-4 py-5 text-center sm:p-6"
+              :class="ticker.price === '-' ? 'bg-red-100' : ''"
+            >
               <dt class="truncate text-sm font-medium text-gray-500">
                 {{ ticker.label }} - USD
               </dt>
@@ -138,12 +141,15 @@
         <h3 class="my-8 text-lg font-medium leading-6 text-gray-900">
           {{ selectedTicker.label }} - USD
         </h3>
-        <div class="flex h-64 items-end border-b border-l border-gray-600">
+        <div
+          ref="graph"
+          class="flex h-64 items-end border-b border-l border-gray-600"
+        >
           <div
             v-for="(bar, idx) in normalizedGraph"
             :key="idx"
-            :style="{ height: `${bar}%` }"
-            class="h-24 w-10 border bg-purple-800"
+            :style="{ height: `${bar}%`, width: `${graphStrokeWidth}px` }"
+            class="h-24 border bg-purple-800"
           />
         </div>
         <button
@@ -195,9 +201,8 @@
 import {
   subscribeToTicker,
   getCoinsListFullInfo,
-  unsubscribeFromTickers,
+  unsubscribeFromTicker,
 } from "./api"
-
 export default {
   name: "App",
   data() {
@@ -211,6 +216,8 @@ export default {
       selectedTicker: null,
       tags: ["BTC", "ETH", "DODGE", "TSL"],
       coinList: [],
+      maxGraphElements: 1,
+      graphStrokeWidth: 20,
     }
   },
   computed: {
@@ -318,6 +325,11 @@ export default {
 
   async mounted() {
     this.coinList = await getCoinsListFullInfo()
+
+    window.addEventListener("resize", this.calculateMaxGraphElements)
+  },
+  beforeUnmount() {
+    window.removeEventListener("resize", this.calculateMaxGraphElements)
   },
   created() {
     const windowData = Object.fromEntries(
@@ -344,12 +356,23 @@ export default {
     }
   },
   methods: {
+    calculateMaxGraphElements() {
+      if (!this.$refs.graph) {
+        return
+      }
+      this.maxGraphElements =
+        this.$refs.graph.clientWidth / this.graphStrokeWidth
+    },
     updateTicker(tickerName, price) {
       this.tickers
         .filter((t) => t.label === tickerName)
         .forEach((t) => {
           if (t === this.selectedTicker) {
             this.graph.push(price)
+            console.log(this.maxGraphElements)
+            while (this.graph.length > this.maxGraphElements) {
+              this.graph.shift()
+            }
           }
           t.price = price
         })
@@ -380,6 +403,9 @@ export default {
 
     select(ticker) {
       this.selectedTicker = ticker
+      this.$nextTick(() => {
+        this.calculateMaxGraphElements()
+      })
     },
 
     focusInput() {
@@ -392,7 +418,7 @@ export default {
         this.selectedTicker = null
       }
 
-      unsubscribeFromTickers(tickerToRemove)
+      unsubscribeFromTicker(tickerToRemove)
     },
   },
 }
