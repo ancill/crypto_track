@@ -3,69 +3,7 @@
     class="dark:bg-slate-800 container mx-auto flex flex-col items-center bg-gray-100 p-4"
   >
     <div class="container">
-      <section>
-        <div class="flex">
-          <div class="max-w-xs">
-            <label
-              for="wallet"
-              class="block text-sm font-medium text-gray-700"
-            />
-            <h3 class="text-sm font-bold dark:text-white">Тикер</h3>
-            <div class="relative mt-1 rounded-md shadow-md">
-              <input
-                id="wallet"
-                ref="wallet"
-                v-model="tickerInputValue"
-                type="text"
-                name="wallet"
-                class="block w-full rounded-md border-gray-300 pr-10 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-gray-500 sm:text-sm"
-                placeholder="Например DOGE"
-                @keyup.enter="!isShowTooltipForSameTicker ? addTicker() : null"
-              />
-            </div>
-            <div
-              class="flex flex-wrap rounded-md bg-white p-1 shadow-md shadow-md"
-            >
-              <span
-                v-for="tag in tags"
-                :key="tag"
-                class="m-1 inline-flex cursor-pointer items-center rounded-md bg-gray-300 px-2 text-xs font-medium text-gray-800"
-                @click="tickerInputValue = tag"
-              >
-                {{ tag }}
-              </span>
-            </div>
-            <div v-if="isShowTooltipForSameTicker" class="text-sm text-red-600">
-              Такой тикер уже добавлен
-            </div>
-          </div>
-        </div>
-        <button
-          type="button"
-          :class="
-            isShowTooltipForSameTicker
-              ? 'cursor-not-allowed bg-gray-300 text-sm '
-              : 'bg-gray-600 hover:bg-gray-700'
-          "
-          class="my-4 inline-flex items-center rounded-full border border-transparent py-2 px-4 text-sm font-medium leading-4 text-white shadow-sm transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-          @click="!isShowTooltipForSameTicker ? addTicker() : null"
-        >
-          <!-- Heroicon name: solid/mail -->
-          <svg
-            class="-ml-0.5 mr-2 h-6 w-6"
-            xmlns="http://www.w3.org/2000/svg"
-            width="30"
-            height="30"
-            viewBox="0 0 24 24"
-            fill="#ffffff"
-          >
-            <path
-              d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
-            />
-          </svg>
-          Добавить
-        </button>
-      </section>
+      <add-ticker />
       <template v-if="tickers.length">
         <div class="">
           <hr class="my-4 w-full border-t border-gray-600" />
@@ -203,8 +141,10 @@ import {
   getCoinsListFullInfo,
   unsubscribeFromTicker,
 } from "./api"
+import AddTicker from "./components/AddTicker.vue"
 export default {
   name: "App",
+  components: { AddTicker },
   data() {
     return {
       page: 1,
@@ -224,19 +164,15 @@ export default {
     startIndex() {
       return (this.page - 1) * 6
     },
-
     endIndex() {
       return this.page * 6
     },
-
     hasNextPage() {
       return this.filteredTickers.length > this.endIndex
     },
-
     filteredTickers() {
       return this.tickers.filter((t) => t.label.includes(this.filter))
     },
-
     /** Pagination logic
      * 2 --- 6, 11
      * 1 --- 0, 5
@@ -245,20 +181,16 @@ export default {
     paginatedTickers() {
       return this.filteredTickers.slice(this.startIndex, this.endIndex)
     },
-
     normalizedGraph() {
       const maxValue = Math.max(...this.graph)
       const minValue = Math.min(...this.graph)
-
       if (maxValue === minValue) {
         return this.graph.map(() => 50)
       }
-
       return this.graph.map(
         (price) => 5 + ((price - minValue) * 95) / (maxValue - minValue)
       )
     },
-
     // избавляемся от дублирования
     pageStateOptions() {
       return {
@@ -271,18 +203,15 @@ export default {
     selectedTicker() {
       this.graph = []
     },
-
     // убрали логику из действия (метода) на наблюдателя если это то
     paginatedTickers() {
       if (this.paginatedTickers.length === 0 && this.page > 1) {
         this.page -= 1
       }
     },
-
     filter() {
       this.page = 1
     },
-
     pageStateOptions(value) {
       window.history.pushState(
         null,
@@ -290,21 +219,17 @@ export default {
         `${window.location.pathname}?filter=${value.filter}&page=${value.page}`
       )
     },
-
     tickerInputValue() {
       this.tickerInputValue = this.tickerInputValue.toUpperCase()
       const coinsNames = Object.keys(this.coinList)
       const filteredSimilarCoins = coinsNames
         .filter((el) => el.includes(this.tickerInputValue))
         .reverse()
-
       this.isShowTooltipForSameTicker = this.tickers.find(
         (el) => el.label === this.tickerInputValue
       )
-
       // check for suggestions tags
       // const l = filteredSimilarCoins.find((el) => this.tickers.includes(el))
-
       // if no input set tags to popular tags
       if (!this.tickerInputValue) {
         this.tags = ["BTC", "ETH", "DODGE", "TSLE"]
@@ -312,20 +237,16 @@ export default {
       }
       this.tags = filteredSimilarCoins.slice(0, 4)
     },
-
     tickers() {
       // keep updated list in storage
       // при watch значение меняются не зависимо от того как были спровацированны действия на изменение
       localStorage.setItem("cryptoList", JSON.stringify(this.tickers))
-
       this.tickerInputValue = ""
       this.filter = ""
     },
   },
-
   async mounted() {
     this.coinList = await getCoinsListFullInfo()
-
     window.addEventListener("resize", this.calculateMaxGraphElements)
   },
   beforeUnmount() {
@@ -335,17 +256,13 @@ export default {
     const windowData = Object.fromEntries(
       new URL(window.location).searchParams.entries()
     )
-
     if (windowData.filter) {
       this.filter = windowData.filter
     }
-
     if (windowData.page) {
       this.page = windowData.page
     }
-
     const tickersLocalData = localStorage.getItem("cryptoList")
-
     if (tickersLocalData) {
       this.tickers = JSON.parse(tickersLocalData)
       this.tickers.forEach((ticker) => {
@@ -377,7 +294,6 @@ export default {
           t.price = price
         })
     },
-
     formatPrice(price) {
       if (price === "-") {
         return price
@@ -385,39 +301,23 @@ export default {
       return price > 1 ? price.toFixed(2) : price.toPrecision(2)
     },
 
-    addTicker() {
-      const newTicker = {
-        label: this.tag ? this.tag : this.tickerInputValue,
-        price: "-",
-      }
-
-      this.tickers = [...this.tickers, newTicker]
-      subscribeToTicker(newTicker.label, (newPrice) =>
-        this.updateTicker(newTicker.label, newPrice)
-      )
-    },
-
     showTooltipForSameTicker(ticker) {
       return !!this.tickers.find((el) => el.label === ticker)
     },
-
     select(ticker) {
       this.selectedTicker = ticker
       this.$nextTick(() => {
         this.calculateMaxGraphElements()
       })
     },
-
     focusInput() {
       this.$refs.wallet.focus()
     },
-
     onDelete(tickerToRemove) {
       this.tickers = this.tickers.filter((t) => t.label !== tickerToRemove)
       if (this.selectedTicker?.label === tickerToRemove) {
         this.selectedTicker = null
       }
-
       unsubscribeFromTicker(tickerToRemove)
     },
   },
