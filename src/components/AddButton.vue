@@ -1,8 +1,9 @@
 <template>
   <button
     type="button"
+    :disabled="disabled"
     :class="
-      $props.isDisabled
+      $props.disabled
         ? 'cursor-not-allowed bg-gray-300 text-sm '
         : 'bg-gray-600 hover:bg-gray-700'
     "
@@ -26,11 +27,13 @@
 <script>
 export default {
   props: {
-    isDisabled: Boolean,
+    disabled: {
+      type: Boolean,
+      requered: false,
+      default: false,
+    },
   },
-  created() {
-    // props are exposed on `this`
-    console.log(this.isDisabled)
-  },
+
+  created() {},
 }
 </script>

@@ -3,7 +3,11 @@
     class="dark:bg-slate-800 container mx-auto flex flex-col items-center bg-gray-100 p-4"
   >
     <div class="container">
-      <add-ticker />
+      <add-ticker
+        :disabled="tooManyTickersAdded"
+        :tickers="tickers"
+        @add-ticker="addTicker"
+      />
       <template v-if="tickers.length">
         <div class="">
           <hr class="my-4 w-full border-t border-gray-600" />
@@ -74,50 +78,6 @@
         </dl>
         <hr class="my-4 w-full border-t border-gray-600" />
       </template>
-
-      <section v-if="selectedTicker" class="relative">
-        <h3 class="my-8 text-lg font-medium leading-6 text-gray-900">
-          {{ selectedTicker.label }} - USD
-        </h3>
-        <div
-          ref="graph"
-          class="flex h-64 items-end border-b border-l border-gray-600"
-        >
-          <div
-            v-for="(bar, idx) in normalizedGraph"
-            :key="idx"
-            :style="{ height: `${bar}%`, width: `${graphStrokeWidth}px` }"
-            class="h-24 border bg-purple-800"
-          />
-        </div>
-        <button
-          type="button"
-          class="absolute top-0 right-0"
-          @click="selectedTicker = null"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            xmlns:xlink="http://www.w3.org/1999/xlink"
-            xmlns:svgjs="http://svgjs.com/svgjs"
-            version="1.1"
-            width="30"
-            height="30"
-            x="0"
-            y="0"
-            viewBox="0 0 511.76 511.76"
-            style="enable-background: new 0 0 512 512"
-            xml:space="preserve"
-          >
-            <g>
-              <path
-                d="M436.896,74.869c-99.84-99.819-262.208-99.819-362.048,0c-99.797,99.819-99.797,262.229,0,362.048    c49.92,49.899,115.477,74.837,181.035,74.837s131.093-24.939,181.013-74.837C536.715,337.099,536.715,174.688,436.896,74.869z     M361.461,331.317c8.341,8.341,8.341,21.824,0,30.165c-4.16,4.16-9.621,6.251-15.083,6.251c-5.461,0-10.923-2.091-15.083-6.251    l-75.413-75.435l-75.392,75.413c-4.181,4.16-9.643,6.251-15.083,6.251c-5.461,0-10.923-2.091-15.083-6.251    c-8.341-8.341-8.341-21.845,0-30.165l75.392-75.413l-75.413-75.413c-8.341-8.341-8.341-21.845,0-30.165    c8.32-8.341,21.824-8.341,30.165,0l75.413,75.413l75.413-75.413c8.341-8.341,21.824-8.341,30.165,0    c8.341,8.32,8.341,21.824,0,30.165l-75.413,75.413L361.461,331.317z"
-                fill="#718096"
-                data-original="#000000"
-              />
-            </g>
-          </svg>
-        </button>
-      </section>
     </div>
   </div>
 </template>
@@ -136,11 +96,8 @@
 // [ ] 10. magic number ( url, milseconds, localStorage key, pageNumber, api key) - 1
 // [x] 11. graph broken with same values
 // [X] 12. removed tickers has graph to show
-import {
-  subscribeToTicker,
-  getCoinsListFullInfo,
-  unsubscribeFromTicker,
-} from "./api"
+
+import { subscribeToTicker, unsubscribeFromTicker } from "./api"
 import AddTicker from "./components/AddTicker.vue"
 export default {
   name: "App",
@@ -151,16 +108,16 @@ export default {
       filter: "",
       tickers: [],
       graph: [],
-      tickerInputValue: "",
       isShowTooltipForSameTicker: false,
       selectedTicker: null,
-      tags: ["BTC", "ETH", "DODGE", "TSL"],
-      coinList: [],
       maxGraphElements: 1,
       graphStrokeWidth: 20,
     }
   },
   computed: {
+    tooManyTickersAdded() {
+      return this.tickers.length > 4
+    },
     startIndex() {
       return (this.page - 1) * 6
     },
@@ -219,36 +176,15 @@ export default {
         `${window.location.pathname}?filter=${value.filter}&page=${value.page}`
       )
     },
-    tickerInputValue() {
-      this.tickerInputValue = this.tickerInputValue.toUpperCase()
-      const coinsNames = Object.keys(this.coinList)
-      const filteredSimilarCoins = coinsNames
-        .filter((el) => el.includes(this.tickerInputValue))
-        .reverse()
-      this.isShowTooltipForSameTicker = this.tickers.find(
-        (el) => el.label === this.tickerInputValue
-      )
-      // check for suggestions tags
-      // const l = filteredSimilarCoins.find((el) => this.tickers.includes(el))
-      // if no input set tags to popular tags
-      if (!this.tickerInputValue) {
-        this.tags = ["BTC", "ETH", "DODGE", "TSLE"]
-        return
-      }
-      this.tags = filteredSimilarCoins.slice(0, 4)
-    },
+
     tickers() {
       // keep updated list in storage
       // при watch значение меняются не зависимо от того как были спровацированны действия на изменение
       localStorage.setItem("cryptoList", JSON.stringify(this.tickers))
-      this.tickerInputValue = ""
       this.filter = ""
     },
   },
-  async mounted() {
-    this.coinList = await getCoinsListFullInfo()
-    window.addEventListener("resize", this.calculateMaxGraphElements)
-  },
+
   beforeUnmount() {
     window.removeEventListener("resize", this.calculateMaxGraphElements)
   },
@@ -273,6 +209,16 @@ export default {
     }
   },
   methods: {
+    addTicker(ticker) {
+      const newTicker = {
+        label: ticker,
+        price: "-",
+      }
+      this.tickers = [...this.tickers, newTicker]
+      subscribeToTicker(newTicker.label, (newPrice) =>
+        this.updateTicker(newTicker.label, newPrice)
+      )
+    },
     calculateMaxGraphElements() {
       if (!this.$refs.graph) {
         return
