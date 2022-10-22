@@ -17,7 +17,7 @@
     <button
       type="button"
       class="absolute top-0 right-0"
-      @click="selectedTicker = null"
+      @click="unselectTicker"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -44,4 +44,38 @@
   </section>
 </template>
 
-<script></script>
+<script>
+export default {
+  props: {
+    selectedTicker: {
+      type: [Object, null],
+      required: true,
+      default() {
+        return { label: "NONE" }
+      },
+    },
+  },
+  emits: {
+    unselectTicker: () => true,
+  },
+  data() {
+    return {
+      graph: [],
+      graphStrokeWidth: 20,
+      maxGraphElements: 1,
+    }
+  },
+  methods: {
+    normalizedGraph() {
+      const maxValue = Math.max(...this.graph)
+      const minValue = Math.min(...this.graph)
+      if (maxValue === minValue) {
+        return this.graph.map(() => 50)
+      }
+      return this.graph.map(
+        (price) => 5 + ((price - minValue) * 95) / (maxValue - minValue)
+      )
+    },
+  },
+}
+</script>

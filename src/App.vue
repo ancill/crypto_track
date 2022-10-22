@@ -78,6 +78,10 @@
         </dl>
         <hr class="my-4 w-full border-t border-gray-600" />
       </template>
+      <price-graph
+        :unselect-ticker="unselectTicker"
+        :selected-ticker="selectedTicker"
+      />
     </div>
   </div>
 </template>
@@ -99,19 +103,18 @@
 
 import { subscribeToTicker, unsubscribeFromTicker } from "./api"
 import AddTicker from "./components/AddTicker.vue"
+import PriceGraph from "./components/PriceGraph.vue"
 export default {
   name: "App",
-  components: { AddTicker },
+  components: { AddTicker, PriceGraph },
   data() {
     return {
       page: 1,
       filter: "",
       tickers: [],
-      graph: [],
+
       isShowTooltipForSameTicker: false,
       selectedTicker: null,
-      maxGraphElements: 1,
-      graphStrokeWidth: 20,
     }
   },
   computed: {
@@ -138,16 +141,7 @@ export default {
     paginatedTickers() {
       return this.filteredTickers.slice(this.startIndex, this.endIndex)
     },
-    normalizedGraph() {
-      const maxValue = Math.max(...this.graph)
-      const minValue = Math.min(...this.graph)
-      if (maxValue === minValue) {
-        return this.graph.map(() => 50)
-      }
-      return this.graph.map(
-        (price) => 5 + ((price - minValue) * 95) / (maxValue - minValue)
-      )
-    },
+
     // избавляемся от дублирования
     pageStateOptions() {
       return {
@@ -232,7 +226,6 @@ export default {
         .forEach((t) => {
           if (t === this.selectedTicker) {
             this.graph.push(price)
-            console.log(this.maxGraphElements)
             while (this.graph.length > this.maxGraphElements) {
               this.graph.shift()
             }
@@ -249,6 +242,10 @@ export default {
 
     showTooltipForSameTicker(ticker) {
       return !!this.tickers.find((el) => el.label === ticker)
+    },
+    unselectTicker() {
+      console.log("hello")
+      this.selectedTicker = null
     },
     select(ticker) {
       this.selectedTicker = ticker
