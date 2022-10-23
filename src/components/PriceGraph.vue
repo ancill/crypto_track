@@ -8,7 +8,7 @@
       class="flex h-64 items-end border-b border-l border-gray-600"
     >
       <div
-        v-for="(bar, idx) in normalizedGraph"
+        v-for="(bar, idx) in normalizedGraph()"
         :key="idx"
         :style="{ height: `${bar}%`, width: `${graphStrokeWidth}px` }"
         class="h-24 border bg-purple-800"
@@ -51,31 +51,62 @@ export default {
       type: [Object, null],
       required: true,
       default() {
-        return { label: "NONE" }
+        return { label: "NONE" };
       },
     },
   },
   emits: {
-    unselectTicker: () => true,
+    "unselect-ticker": null, // no validation
   },
   data() {
     return {
       graph: [],
       graphStrokeWidth: 20,
-      maxGraphElements: 1,
-    }
+      maxGraphElements: 2,
+    };
   },
-  methods: {
-    normalizedGraph() {
-      const maxValue = Math.max(...this.graph)
-      const minValue = Math.min(...this.graph)
-      if (maxValue === minValue) {
-        return this.graph.map(() => 50)
+  watch: {
+    "selectedTicker.price"(price) {
+      //deep watch prop
+      if (price > 0) {
+        this.graph.push(price);
+        while (this.graph.length > this.maxGraphElements) {
+          this.graph.shift();
+        }
       }
-      return this.graph.map(
-        (price) => 5 + ((price - minValue) * 95) / (maxValue - minValue)
-      )
+
+      this.$nextTick(() => {
+        this.calculateMaxGraphElements();
+      });
     },
   },
-}
+  beforeUnmount() {
+    window.removeEventListener("resize", this.calculateMaxGraphElements);
+  },
+  methods: {
+    unselectTicker() {
+      this.$emit("unselect-ticker");
+      this.graph = [];
+    },
+    calculateMaxGraphElements() {
+      if (!this.$refs.graph) {
+        return;
+      }
+      this.maxGraphElements =
+        this.$refs.graph.clientWidth / this.graphStrokeWidth;
+    },
+    normalizedGraph() {
+      const maxValue = Math.max(...this.graph);
+      const minValue = Math.min(...this.graph);
+      if (maxValue === minValue) {
+        return this.graph.map(() => 50);
+      }
+      const newGraph = this.graph.map(
+        (price) => 5 + ((price - minValue) * 95) / (maxValue - minValue)
+      );
+      console.log(this.maxGraphElements);
+      return newGraph;
+    },
+  },
+};
 </script>

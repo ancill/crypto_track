@@ -79,8 +79,8 @@
         <hr class="my-4 w-full border-t border-gray-600" />
       </template>
       <price-graph
-        :unselect-ticker="unselectTicker"
         :selected-ticker="selectedTicker"
+        @unselect-ticker="unselectTicker"
       />
     </div>
   </div>
@@ -101,9 +101,9 @@
 // [x] 11. graph broken with same values
 // [X] 12. removed tickers has graph to show
 
-import { subscribeToTicker, unsubscribeFromTicker } from "./api"
-import AddTicker from "./components/AddTicker.vue"
-import PriceGraph from "./components/PriceGraph.vue"
+import { subscribeToTicker, unsubscribeFromTicker } from "./api";
+import AddTicker from "./components/AddTicker.vue";
+import PriceGraph from "./components/PriceGraph.vue";
 export default {
   name: "App",
   components: { AddTicker, PriceGraph },
@@ -115,23 +115,23 @@ export default {
 
       isShowTooltipForSameTicker: false,
       selectedTicker: null,
-    }
+    };
   },
   computed: {
     tooManyTickersAdded() {
-      return this.tickers.length > 4
+      return this.tickers.length > 40;
     },
     startIndex() {
-      return (this.page - 1) * 6
+      return (this.page - 1) * 6;
     },
     endIndex() {
-      return this.page * 6
+      return this.page * 6;
     },
     hasNextPage() {
-      return this.filteredTickers.length > this.endIndex
+      return this.filteredTickers.length > this.endIndex;
     },
     filteredTickers() {
-      return this.tickers.filter((t) => t.label.includes(this.filter))
+      return this.tickers.filter((t) => t.label.includes(this.filter));
     },
     /** Pagination logic
      * 2 --- 6, 11
@@ -139,7 +139,7 @@ export default {
      * (6 * (page - 1), 6 * page - 1)
      */
     paginatedTickers() {
-      return this.filteredTickers.slice(this.startIndex, this.endIndex)
+      return this.filteredTickers.slice(this.startIndex, this.endIndex);
     },
 
     // избавляемся от дублирования
@@ -147,59 +147,53 @@ export default {
       return {
         filter: this.filter,
         page: this.page,
-      }
+      };
     },
   },
   watch: {
-    selectedTicker() {
-      this.graph = []
-    },
     // убрали логику из действия (метода) на наблюдателя если это то
     paginatedTickers() {
       if (this.paginatedTickers.length === 0 && this.page > 1) {
-        this.page -= 1
+        this.page -= 1;
       }
     },
     filter() {
-      this.page = 1
+      this.page = 1;
     },
     pageStateOptions(value) {
       window.history.pushState(
         null,
         document.title,
         `${window.location.pathname}?filter=${value.filter}&page=${value.page}`
-      )
+      );
     },
 
     tickers() {
       // keep updated list in storage
       // при watch значение меняются не зависимо от того как были спровацированны действия на изменение
-      localStorage.setItem("cryptoList", JSON.stringify(this.tickers))
-      this.filter = ""
+      localStorage.setItem("cryptoList", JSON.stringify(this.tickers));
+      this.filter = "";
     },
   },
 
-  beforeUnmount() {
-    window.removeEventListener("resize", this.calculateMaxGraphElements)
-  },
   created() {
     const windowData = Object.fromEntries(
       new URL(window.location).searchParams.entries()
-    )
+    );
     if (windowData.filter) {
-      this.filter = windowData.filter
+      this.filter = windowData.filter;
     }
     if (windowData.page) {
-      this.page = windowData.page
+      this.page = windowData.page;
     }
-    const tickersLocalData = localStorage.getItem("cryptoList")
+    const tickersLocalData = localStorage.getItem("cryptoList");
     if (tickersLocalData) {
-      this.tickers = JSON.parse(tickersLocalData)
+      this.tickers = JSON.parse(tickersLocalData);
       this.tickers.forEach((ticker) => {
         subscribeToTicker(ticker.label, (newPrice) => {
-          this.updateTicker(ticker.label, newPrice)
-        })
-      })
+          this.updateTicker(ticker.label, newPrice);
+        });
+      });
     }
   },
   methods: {
@@ -207,62 +201,46 @@ export default {
       const newTicker = {
         label: ticker,
         price: "-",
-      }
-      this.tickers = [...this.tickers, newTicker]
+      };
+      this.tickers = [...this.tickers, newTicker];
       subscribeToTicker(newTicker.label, (newPrice) =>
         this.updateTicker(newTicker.label, newPrice)
-      )
+      );
     },
-    calculateMaxGraphElements() {
-      if (!this.$refs.graph) {
-        return
-      }
-      this.maxGraphElements =
-        this.$refs.graph.clientWidth / this.graphStrokeWidth
-    },
+
     updateTicker(tickerName, price) {
       this.tickers
         .filter((t) => t.label === tickerName)
         .forEach((t) => {
-          if (t === this.selectedTicker) {
-            this.graph.push(price)
-            while (this.graph.length > this.maxGraphElements) {
-              this.graph.shift()
-            }
-          }
-          t.price = price
-        })
+          t.price = price;
+        });
     },
     formatPrice(price) {
       if (price === "-") {
-        return price
+        return price;
       }
-      return price > 1 ? price.toFixed(2) : price.toPrecision(2)
+      return price > 1 ? price.toFixed(2) : price.toPrecision(2);
     },
 
     showTooltipForSameTicker(ticker) {
-      return !!this.tickers.find((el) => el.label === ticker)
+      return !!this.tickers.find((el) => el.label === ticker);
     },
     unselectTicker() {
-      console.log("hello")
-      this.selectedTicker = null
+      this.selectedTicker = null;
     },
     select(ticker) {
-      this.selectedTicker = ticker
-      this.$nextTick(() => {
-        this.calculateMaxGraphElements()
-      })
+      this.selectedTicker = ticker;
     },
     focusInput() {
-      this.$refs.wallet.focus()
+      this.$refs.wallet.focus();
     },
     onDelete(tickerToRemove) {
-      this.tickers = this.tickers.filter((t) => t.label !== tickerToRemove)
+      this.tickers = this.tickers.filter((t) => t.label !== tickerToRemove);
       if (this.selectedTicker?.label === tickerToRemove) {
-        this.selectedTicker = null
+        this.selectedTicker = null;
       }
-      unsubscribeFromTicker(tickerToRemove)
+      unsubscribeFromTicker(tickerToRemove);
     },
   },
-}
+};
 </script>
