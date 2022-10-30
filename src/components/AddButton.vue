@@ -8,6 +8,7 @@
         : 'bg-gray-600 hover:bg-gray-700'
     "
     class="my-4 inline-flex items-center rounded-full border border-transparent py-2 px-4 text-sm font-medium leading-4 text-white shadow-sm transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+    @click="$emit('click')"
   >
     <svg
       class="-ml-0.5 mr-2 h-6 w-6"
@@ -34,6 +35,10 @@ export default {
     },
   },
 
+  emits: {
+    click: null,
+  },
+
   created() {},
-}
+};
 </script>

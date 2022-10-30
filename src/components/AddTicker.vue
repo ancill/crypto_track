@@ -13,7 +13,6 @@
             name="wallet"
             class="block w-full rounded-md border-gray-300 pr-10 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-gray-500 sm:text-sm"
             placeholder="Например DOGE"
-            @keyup.enter="add"
           />
         </div>
         <div class="flex flex-wrap rounded-md bg-white p-1 shadow-md">
@@ -43,8 +42,8 @@
 // TODO:
 // [ ] Fix isShowTooltipForSameTicker
 
-import AddButton from "./AddButton.vue"
-import { getCoinsListFullInfo } from "../api"
+import AddButton from "./AddButton.vue";
+import { getCoinsListFullInfo } from "../api";
 export default {
   components: {
     AddButton,
@@ -59,7 +58,7 @@ export default {
     tickers: {
       type: Array,
       default() {
-        return []
+        return [];
       },
     },
   },
@@ -74,45 +73,44 @@ export default {
       tags: ["BTC", "ETH", "DODGE", "TSL"],
       isShowTooltipForSameTicker: false,
       coinList: [],
-    }
+    };
   },
 
   watch: {
     ticker() {
-      this.ticker = this.ticker.toUpperCase()
-      const coinsNames = Object.keys(this.coinList)
+      this.ticker = this.ticker.toUpperCase();
+      const coinsNames = Object.keys(this.coinList);
       const filteredSimilarCoins = coinsNames
         .filter((el) => el.includes(this.ticker))
-        .reverse()
+        .reverse();
 
-      // TODO : FIX!!
       this.isShowTooltipForSameTicker = !!this.tickers.find(
         (el) => el.label === this.ticker
-      )
+      );
       // check for suggestions tags
       // const l = filteredSimilarCoins.find((el) => this.tickers.includes(el))
       // if no input set tags to popular tags
       if (!this.ticker) {
-        this.tags = ["BTC", "ETH", "DODGE", "TSLE"]
-        return
+        this.tags = ["BTC", "ETH", "DODGE", "TSLE"];
+        return;
       }
-      this.tags = filteredSimilarCoins.slice(0, 4)
+      this.tags = filteredSimilarCoins.slice(0, 4);
     },
   },
 
   async mounted() {
-    this.coinList = await getCoinsListFullInfo()
-    window.addEventListener("resize", this.calculateMaxGraphElements)
+    this.coinList = await getCoinsListFullInfo();
+    window.addEventListener("resize", this.calculateMaxGraphElements);
   },
 
   methods: {
     add() {
       if (this.ticker.length === 0) {
-        return
+        return;
       }
-      this.$emit("add-ticker", this.ticker)
-      this.ticker = ""
+      this.$emit("add-ticker", this.ticker);
+      this.ticker = "";
     },
   },
-}
+};
 </script>

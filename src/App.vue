@@ -82,6 +82,11 @@
         :selected-ticker="selectedTicker"
         @unselect-ticker="unselectTicker"
       />
+      <modal-cookies>
+        <template #content="slotProps">
+          <cookies-content :content="slotProps.text" />
+        </template>
+      </modal-cookies>
     </div>
   </div>
 </template>
@@ -104,9 +109,11 @@
 import { subscribeToTicker, unsubscribeFromTicker } from "./api";
 import AddTicker from "./components/AddTicker.vue";
 import PriceGraph from "./components/PriceGraph.vue";
+import ModalCookies from "./components/ModalCookies.vue";
+import CookiesContent from "./components/CookiesContent.vue";
 export default {
   name: "App",
-  components: { AddTicker, PriceGraph },
+  components: { AddTicker, PriceGraph, ModalCookies, CookiesContent },
   data() {
     return {
       page: 1,
@@ -115,6 +122,7 @@ export default {
 
       isShowTooltipForSameTicker: false,
       selectedTicker: null,
+      helloText: "hello",
     };
   },
   computed: {
