@@ -82,11 +82,18 @@
         :selected-ticker="selectedTicker"
         @unselect-ticker="unselectTicker"
       />
-      <modal-cookies>
+      <button
+        class="focus:ring-2 focus:ring-offset-2 focus:ring-gray-800 focus:outline-none py-2 px-7 bg-gray-600 text-white rounded text-base hover:bg-black"
+        @click="toggleModal"
+      >
+        Open
+      </button>
+      <modal-container :is-open="isModalOpen" @close-modal="onClickCloseModal">
         <template #content="slotProps">
           <cookies-content :content="slotProps.text" />
+          <modal-buttons @close-modal="onClickCloseModal" />
         </template>
-      </modal-cookies>
+      </modal-container>
     </div>
   </div>
 </template>
@@ -109,11 +116,18 @@
 import { subscribeToTicker, unsubscribeFromTicker } from "./api";
 import AddTicker from "./components/AddTicker.vue";
 import PriceGraph from "./components/PriceGraph.vue";
-import ModalCookies from "./components/ModalCookies.vue";
+import ModalContainer from "./components/ModalContainer.vue";
 import CookiesContent from "./components/CookiesContent.vue";
+import ModalButtons from "./components/ModalButtons.vue";
 export default {
   name: "App",
-  components: { AddTicker, PriceGraph, ModalCookies, CookiesContent },
+  components: {
+    AddTicker,
+    PriceGraph,
+    ModalContainer,
+    CookiesContent,
+    ModalButtons,
+  },
   data() {
     return {
       page: 1,
@@ -123,6 +137,7 @@ export default {
       isShowTooltipForSameTicker: false,
       selectedTicker: null,
       helloText: "hello",
+      isModalOpen: false,
     };
   },
   computed: {
@@ -248,6 +263,12 @@ export default {
         this.selectedTicker = null;
       }
       unsubscribeFromTicker(tickerToRemove);
+    },
+    onClickCloseModal() {
+      this.toggleModal();
+    },
+    toggleModal() {
+      this.isModalOpen = !this.isModalOpen;
     },
   },
 };
