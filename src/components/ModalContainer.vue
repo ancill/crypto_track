@@ -16,7 +16,7 @@
           @click.stop
         >
           <slot name="content" :text="$options.COOKIES_TEXT" />
-          <slot name="action" :confirm="popUpConfirm" />
+          <slot name="action" :confirm="confirm" :close="close" />
         </div>
       </div>
     </div>
@@ -25,42 +25,49 @@
 
 <script>
 export default {
-  props: {
-    isOpen: {
-      requered: true,
-      default: false,
-      type: Boolean,
-    },
-    click: {
-      requered: true,
-      default: null,
-      type: Function,
-    },
+  currentModalController: null,
+  data() {
+    return {
+      isOpen: false,
+    };
   },
-  emits: {
-    "close-modal": null,
-  },
+
   COOKIES_TEXT: "We use cookies",
+
   mounted() {
     document.addEventListener("keydown", this.onKeyDownEvent);
   },
+
   unmounted() {
     document.removeEventListener("keydown", this.onKeyDownEvent);
   },
+
   methods: {
+    open() {
+      let resolve;
+      let reject;
+      const modalPromise = new Promise((ok, fail) => {
+        resolve = ok;
+        reject = fail;
+      });
+
+      this.$options.currentModalController = { resolve, reject };
+      this.isOpen = true;
+
+      return modalPromise;
+    },
     close() {
-      this.$emit("close-modal");
+      this.$options.currentModalController.resolve(false);
+      this.isOpen = false;
+    },
+    confirm() {
+      this.$options.currentModalController.resolve(true);
+      this.isOpen = false;
     },
     onKeyDownEvent(e) {
       if (this.isOpen && e.key === "Escape") {
-        console.log("pressed");
         this.close();
       }
-    },
-    popUpConfirm() {
-      alert("CONFIRMED!");
-      console.log("conf");
-      this.close();
     },
   },
 };

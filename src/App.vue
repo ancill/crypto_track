@@ -84,17 +84,17 @@
       />
       <button
         class="focus:ring-2 focus:ring-offset-2 focus:ring-gray-800 focus:outline-none py-2 px-7 bg-gray-600 text-white rounded text-base hover:bg-black"
-        @click="isModalOpen = true"
+        @click="cookiesAgreement"
       >
         Open
       </button>
-      <modal-container :is-open="isModalOpen" @close-modal="onClickCloseModal">
+      <modal-container ref="modal">
         <template #content="{ text }">
           <cookies-content :content="text" />
         </template>
 
-        <template #action="{ confirm }">
-          <modal-buttons @click-close="onClickCloseModal" @click-ok="confirm" />
+        <template #action="{ confirm, close }">
+          <modal-buttons @click-close="close" @click-ok="confirm" />
         </template>
       </modal-container>
     </div>
@@ -267,8 +267,11 @@ export default {
       }
       unsubscribeFromTicker(tickerToRemove);
     },
-    onClickCloseModal() {
-      this.isModalOpen = false;
+    async cookiesAgreement() {
+      const modalResult = await this.$refs.modal.open();
+      if (modalResult) {
+        alert("Confirmed");
+      }
     },
   },
 };
