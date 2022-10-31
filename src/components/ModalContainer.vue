@@ -16,7 +16,7 @@
           @click.stop
         >
           <slot name="content" :text="$options.COOKIES_TEXT" />
-          <slot name="buttons" />
+          <slot name="action" :confirm="popUpConfirm" />
         </div>
       </div>
     </div>
@@ -38,7 +38,7 @@ export default {
     },
   },
   emits: {
-    closeModal: null,
+    "close-modal": null,
   },
   COOKIES_TEXT: "We use cookies",
   mounted() {
@@ -49,13 +49,18 @@ export default {
   },
   methods: {
     close() {
-      this.$emit("closeModal");
+      this.$emit("close-modal");
     },
     onKeyDownEvent(e) {
       if (this.isOpen && e.key === "Escape") {
         console.log("pressed");
         this.close();
       }
+    },
+    popUpConfirm() {
+      alert("CONFIRMED!");
+      console.log("conf");
+      this.close();
     },
   },
 };

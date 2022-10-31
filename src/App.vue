@@ -84,14 +84,17 @@
       />
       <button
         class="focus:ring-2 focus:ring-offset-2 focus:ring-gray-800 focus:outline-none py-2 px-7 bg-gray-600 text-white rounded text-base hover:bg-black"
-        @click="toggleModal"
+        @click="isModalOpen = true"
       >
         Open
       </button>
       <modal-container :is-open="isModalOpen" @close-modal="onClickCloseModal">
-        <template #content="slotProps">
-          <cookies-content :content="slotProps.text" />
-          <modal-buttons @close-modal="onClickCloseModal" />
+        <template #content="{ text }">
+          <cookies-content :content="text" />
+        </template>
+
+        <template #action="{ confirm }">
+          <modal-buttons @click-close="onClickCloseModal" @click-ok="confirm" />
         </template>
       </modal-container>
     </div>
@@ -265,10 +268,7 @@ export default {
       unsubscribeFromTicker(tickerToRemove);
     },
     onClickCloseModal() {
-      this.toggleModal();
-    },
-    toggleModal() {
-      this.isModalOpen = !this.isModalOpen;
+      this.isModalOpen = false;
     },
   },
 };

@@ -44,14 +44,15 @@
 export default {
   props: {},
   emits: {
-    closeModal: null,
+    "click-close": null,
+    "click-ok": null,
   },
   methods: {
     onClickOk() {
-      this.$emit("closeModal");
+      this.$emit("click-ok");
     },
     onClickClose() {
-      this.$emit("closeModal");
+      this.$emit("click-close");
     },
   },
 };
