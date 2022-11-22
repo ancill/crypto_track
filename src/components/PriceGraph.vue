@@ -68,12 +68,7 @@ export default {
   watch: {
     "selectedTicker.price"(price) {
       //deep watch prop
-      if (price > 0) {
-        this.graph.push(price);
-        while (this.graph.length > this.maxGraphElements) {
-          this.graph.shift();
-        }
-      }
+
 
       this.$nextTick(() => {
         this.calculateMaxGraphElements();
